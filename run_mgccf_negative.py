@@ -938,7 +938,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                                          user_self_neighs, item_self_neighs,
                                          n_batch_users=parser.batch_evaluate)
 
-            if parser.adaptive_oversampling and _epoch % 2 == 1:
+            if parser.adaptive_oversampling:
                 ranked_items = get_preds(sess, model, n_user, n_item, train_matrix,
                                          u_adj_list, v_adj_list,
                                          user_self_neighs, item_self_neighs,
