@@ -5,7 +5,7 @@ import glob
 
 
 class Logger(object):
-    def __init__(self, logname, log_save_name, now, log_files='/media/data/yuening/graph_incremental_logs/log-files/version2/'):
+    def __init__(self, logname, log_save_name, now, log_files='data/graph_incremental_logs/log-files/version2/'):
         self.terminal = sys.stdout
         self.file = None
 
@@ -15,6 +15,8 @@ class Logger(object):
             os.makedirs(path)
 
         model_path = os.path.join(log_files, log_save_name, now)
+        print(model_path)
+
         os.makedirs(model_path)
 
 

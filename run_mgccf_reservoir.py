@@ -3,6 +3,12 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import tensorflow as tf
+from tensorflow.compat.v1 import ConfigProto
+from tensorflow.compat.v1 import InteractiveSession
+
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config=config)
 from scipy.special import softmax
 
 import config2
@@ -83,7 +89,6 @@ def convert_adj_to_cat_mean(old_list, emb, n_cluster, y_kmeans):
 
 def generate_local_neighbor(u_adj_list, i_emb, distill_mode, num_neigh):
     '''
-
     :param u_adj_list: dictionary of neighbor indices (N_1 * emb_size)
     :param i_emb: neighbor pool embedding matrix (N_2 * emb_size)
     :param distill_mode: metric to calculate distances

@@ -8,7 +8,7 @@ def parse_arguments():
     parser.add_argument("-d", "--dataset", type=str, default="gowalla", help="Dataset string")
     parser.add_argument("-graph_path", "--graph_path", type=str, default="model_path/",
                         help="data_path to save user_user or item_item self neighbors")
-    parser.add_argument("-load_save_path_prefix", "--load_save_path_prefix", type=str, default='/media/data/yuening/graph_incremental_logs/log-files/reservoirs/',
+    parser.add_argument("-load_save_path_prefix", "--load_save_path_prefix", type=str, default='data/logs/neg_res/',
                         help="upper-level folder for saved models")
     parser.add_argument("-log_folder", "--log_folder", type=str, default='.')
     parser.add_argument("-log", "--log_name", type=str, default='')

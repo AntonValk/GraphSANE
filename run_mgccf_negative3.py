@@ -25,6 +25,7 @@ import scipy as sp
 import scipy.sparse as sprs
 import scipy.spatial
 import scipy.sparse.linalg
+import pickle
 
 def pagerank(A, p=0.85,
              personalize=None, reverse=False):
@@ -491,7 +492,7 @@ def get_scores(sess, model, n_user, n_item, train_matrix, u_adj_list, v_adj_list
         else:
             pred_list = np.append(pred_list, rating_preds, axis=0)
 
-        return pred_list
+    return pred_list
 
 
 def get_model_prediction(parser, checkpoint, train_matrix, n_user, n_item, graph_path=None, return_type='',
@@ -868,13 +869,12 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
         time_info_eval = 0
         time_info_sampling = 0
 
-        all_gradients = []
         while _epoch <= n_epoch:
 
             all_negs = []
             all_user_pos = []
             all_grads = []
-            # all_var_names = []
+            all_var_names = []
 
             time_info.append(('start epoch ' + str(_epoch) + ' training', time.time()))
 
@@ -988,16 +988,32 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                     cache_size = 50   # N1
                     new_samples = 30  # N2
                     if _epoch == 1:
+                        # cache_size = 50  # N1
                         adverserial_reservoir = np.zeros((n_user, cache_size))
                     if _epoch >= 2:
+                        # cache_size = 50  # N1
+                        # new_samples = 30  # N2
                         pivot = np.random.choice(n_item, size=new_samples, replace=False)
                         fill = np.random.choice(n_item - 1)
                         pivot = np.where(pivot >= n_item, fill, pivot)
+                        # adverserial_reservoir = np.zeros((user_pos.shape[0], cache_size))
                         for i, user in enumerate(user_pos[:, 0]):
+                            # sampled_item_scores = ranked_items[user, pivot]
+                            # for j in range(cache_size):
                             cached_items = adverserial_reservoir[user, :]
+                            # print(cached_items)
+                            # print(pivot)
+                            # print(cached_items.shape)
+                            # print(pivot.shape)
                             candidate_items = np.concatenate((cached_items, pivot))
+                            # print(user)
+                            # print(candidate_items)
+                            # print(ranked_items[user, list(candidate_items)])
+                            # print(ranked_items[user, list(candidate_items)].shape)
                             candidate_weights = []
+                            print(ranked_items.shape)
                             for cand in candidate_items:
+                                # print(cand)
                                 if int(cand) > n_item:
                                     cand = fill
                                 candidate_weights.append(ranked_items[user, int(cand)])
@@ -1008,9 +1024,10 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                         adverserial_reservoir = np.where(adverserial_reservoir >= n_item, rand_arr, adverserial_reservoir)
                         neg_samples[:, -2:] = adverserial_reservoir[user_pos[:, 0], :2]
 
-
                 if _epoch >= 2 and parser.adaptive_oversampling:
                     pivot = np.random.geometric(p=0.002, size=10)
+                    fill = np.random.choice(n_item-1)
+                    pivot = np.where(pivot >= n_item, fill, pivot)
                     adverserial_reservoir = np.zeros((user_pos.shape[0], pivot.shape[0]))
                     for i, user in enumerate(user_pos[:, 0]):
                         sampled_items = ranked_items[user, pivot]
@@ -1019,7 +1036,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                     adverserial_reservoir = np.where(adverserial_reservoir >= n_item, rand_arr, adverserial_reservoir)
                     neg_samples[:, -10:] = adverserial_reservoir
 
-                    # personalized adaptive constrastive negative sampling
+                # personalized adaptive constrastive negative sampling
 
                 if _epoch >= 2 and parser.neg_res:
                     pivot = np.random.randint(200, 300, size=2)
@@ -1139,8 +1156,9 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                      model.interest_shift,
                      model.all_q],
                     feed_dict=feed_dict)
-                # all_var_names.append(variables)
-                all_grads.append(np.sum(grads))
+                variables = model.variable_names
+                all_var_names.append(variables)
+                all_grads.append(grads)
 
                 # print('pred_list', pred_list.shape)
                 # print(interest_shift.shape) # (u, K)
@@ -1160,13 +1178,14 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
             time_info.append(('finish epoch ' + str(_epoch) + ' training', time.time()))
             time_info_training = sum(iter_time)
             if _epoch == best_valid_epoch+1:
-                # best_var_names = all_var_names
+                best_var_names = all_var_names
                 best_grads = all_grads
-        all_gradients.append(all_grads)
 
-
-
+        print("saving i_center")
+        print(save_i_center)
         np.save(save_i_center, i_soft_center)
+        with open(f'{save_i_center[:-4]}.pkl','wb') as f:
+          pickle.dump(i_soft_center, f)
         time_info.append(('finish final epoch training', time.time()))
         time_info.append(('total training time', time_info_training))
         time_info.append(('total eval time  ', time_info_eval))
@@ -1186,9 +1205,8 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
             os.makedirs(case_study_results)
         save_pickle(best_negs, case_study_results, "neg_samples")
         save_pickle(best_user_pos, case_study_results, "user_pos")
-        save_pickle(best_grads, case_study_results, "best_gradients")
-        save_pickle(all_gradients, case_study_results, "all_gradients")
-
+        save_pickle(best_grads, case_study_results, "gradients")
+        save_pickle(best_var_names, case_study_results, "variables")
 
 
 def evaluate_model(sess, model, test_info, train_matrix, u_adj_list, v_adj_list, user_self_neighs, item_self_neighs,
@@ -1582,8 +1600,6 @@ if __name__ == '__main__':
         else:
             train_set = data_blocks[parser.block]['train']
         save_i_center = LOG_SAVE_PATH_PREFIX + parser.log_folder + f'/i_center_{parser.block}_{eval(parser.k_centroids)[1]}.npy'
-        print(save_i_center)
-        exit()
 
         train_set, test_set = split_data_randomly(train_set, test_ratio=0.2, seed=parser.seed)
         test_set, val_set = split_data_randomly(test_set, test_ratio=0.5, seed=parser.seed)

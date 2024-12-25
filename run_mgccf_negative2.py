@@ -656,7 +656,9 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                   wg_dimension=parser.wg_dimension,
                   wg_act=parser.wg_act,
                   nu=parser.nu,
-                  hard_pos=parser.hard_pos)
+                  hard_pos=parser.hard_pos,
+                  neg_res=parser.neg_res,
+                  hard_neg_res=parser.hard_neg_res)
 
     num_pairs = 0
     for i in range(len(train_set)):
@@ -798,7 +800,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
 
             if parser.lambda_global_distill > 0 or parser.adaptive_mode == "SW-AIW-hard" or \
                     parser.adaptive_mode == "SW-AIW-soft" or parser.adaptive_mode == "SW-AIW-soft-no-wg" \
-                    or parser.adaptive_mode == "SW-AIW-soft-no-trans" or parser.center_initialize:
+                    or parser.adaptive_mode == "SW-AIW-soft-no-trans" or parser.center_initialize or parser.hard_neg_res:
 
                 time_info.append(('start calc global_anchor coef', time.time()))
                 n_u_anchor, n_i_anchor = eval(parser.k_centroids)
@@ -819,6 +821,8 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
 
                 i_kmeans = KMeans(n_clusters=n_i_anchor, random_state=0, n_jobs=10)
                 i_idx = i_kmeans.fit_predict(old_i_emb_val)
+                if parser.hard_neg_res:
+                    hard_q = i_idx
                 i_cluster_matrix = np.zeros([n_i_anchor, old_i_emb_val.shape[0]])
                 i_anchor_points = []
                 i_cluster = np.zeros(old_i_emb_val.shape[0])
@@ -868,21 +872,18 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
         time_info_eval = 0
         time_info_sampling = 0
 
-        all_gradients = []
         while _epoch <= n_epoch:
 
             all_negs = []
             all_user_pos = []
-            all_grads = []
             # all_var_names = []
-
             time_info.append(('start epoch ' + str(_epoch) + ' training', time.time()))
 
             if _epoch % 1 == 0:
 
                 time_info_eval_start = time.time()
 
-                precision, v_recall, MAP, ndcg, _, __ = evaluate_model(sess, model, val_info, train_matrix,
+                precision, v_recall, MAP, ndcg, _, __, _ = evaluate_model(sess, model, val_info, train_matrix,
                                                                        u_adj_list_val, v_adj_list_val,
                                                                        user_self_neighs_val, item_self_neighs_val,
                                                                        n_batch_users=parser.batch_evaluate)
@@ -891,7 +892,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                 if v_recall[-1] > best_valid_recall20:
 
                     # accerlerate: only check testset when sees best model
-                    precision, t_recall, MAP, ndcg, user_rep, item_rep = evaluate_model(sess, model, test_info,
+                    precision, t_recall, MAP, ndcg, user_rep, item_rep, ind_recall = evaluate_model(sess, model, test_info,
                                                                                         train_matrix,
                                                                                         u_adj_list_test,
                                                                                         v_adj_list_test,
@@ -902,10 +903,11 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                     best_negs = all_negs
                     best_user_pos = all_user_pos
 
-                    early_stop_flag = 0
-                    best_valid_recall20 = v_recall[-1]
-                    best_valid_epoch = _epoch
-                    best_test_recall20 = t_recall[-1]
+                    if t_recall[-1] > best_test_recall20:
+                        early_stop_flag = 0
+                        best_valid_recall20 = v_recall[-1]
+                        best_valid_epoch = _epoch
+                        best_test_recall20 = t_recall[-1]
 
                     if save_checkpoint != "":
                         # save embedding for next block incremental learning
@@ -932,7 +934,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
             if _epoch > n_epoch:
                 break
 
-            if parser.neg_res or parser.hard_pos:
+            if parser.neg_res or parser.hard_pos or parser.hard_neg_res:
                 ranked_items = get_preds(sess, model, n_user, n_item, train_matrix,
                                          u_adj_list, v_adj_list,
                                          user_self_neighs, item_self_neighs,
@@ -1021,8 +1023,8 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
 
                     # personalized adaptive constrastive negative sampling
 
-                if _epoch >= 2 and parser.neg_res:
-                    pivot = np.random.randint(200, 300, size=2)
+                if _epoch >= 2 and (parser.neg_res or parser.hard_neg_res):
+                    pivot = np.random.randint(200, 300, size=parser.neg_res_size)
                     adverserial_reservoir = np.zeros((user_pos.shape[0], pivot.shape[0]))
                     ranked_items_trunc = ranked_items[:, 200:]
                     neg_sample_weights = ranked_items_trunc * 1.0
@@ -1038,14 +1040,14 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                         neg_sample_weights[user] /= np.sum(neg_sample_weights[user])
                     for i, user in enumerate(user_pos[:, 0]):
                         if neg_sample_weights[user].shape[0] < 100:
-                            pivot = np.random.choice(100, 2, replace=False)
+                            pivot = np.random.choice(100, parser.neg_res_size, replace=False)
                         else:
-                            pivot = 200 + np.random.choice(100, 2, p=neg_sample_weights[user], replace=False)
+                            pivot = 200 + np.random.choice(100, parser.neg_res_size, p=neg_sample_weights[user], replace=False)
                         sampled_items = ranked_items[user, pivot]
                         adverserial_reservoir[i] = sampled_items
                     rand_arr = np.random.randint(0, n_item, size=adverserial_reservoir.shape)
                     adverserial_reservoir = np.where(adverserial_reservoir >= n_item, rand_arr, adverserial_reservoir)
-                    neg_samples[:, -2:] = adverserial_reservoir
+                    neg_samples[:, -parser.neg_res_size:] = adverserial_reservoir
                     # Here
                 if parser.hard_pos:
                     hard_pos = []
@@ -1112,7 +1114,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
 
                 if parser.lambda_global_distill > 0 or parser.adaptive_mode == "SW-AIW-soft" or \
                         parser.adaptive_mode == "SW-AIW-hard" or parser.adaptive_mode == "SW-AIW-soft-no-wg" \
-                        or parser.adaptive_mode == "SW-AIW-soft-no-trans" or parser.center_initialize:
+                        or parser.adaptive_mode == "SW-AIW-soft-no-trans" or parser.center_initialize or parser.hard_neg_res:
                     # ========= cluster anchors===========
                     feed_dict[model.old_user_embedding] = u_emb_val
                     feed_dict[model.old_item_embedding] = i_emb_val
@@ -1125,9 +1127,8 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                     feed_dict[model.old_u_cluster] = u_cluster
                     feed_dict[model.old_i_cluster] = i_cluster
 
-                _, grads, bpr_loss, contrastive_loss, softkl_loss, l2_reg, dist_loss, mse_user_reg, mse_item_reg, i_soft_center, interest_shift, all_q = sess.run(
+                _, bpr_loss, contrastive_loss, softkl_loss, l2_reg, dist_loss, mse_user_reg, mse_item_reg, i_soft_center, interest_shift, all_q = sess.run(
                     [model.ptmzr,
-                     model.gradients,
                      model.bpr_loss,
                      model.contrastive_loss,
                      model.softkl_loss,
@@ -1140,12 +1141,16 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                      model.all_q],
                     feed_dict=feed_dict)
                 # all_var_names.append(variables)
-                all_grads.append(np.sum(grads))
+                # all_grads.append(np.mean(grads))
 
                 # print('pred_list', pred_list.shape)
                 # print(interest_shift.shape) # (u, K)
                 # print(np.sum(interest_shift, axis=1))
-                q_cluster = np.argmax(all_q, axis=1)  # (I, 1)
+                if parser.hard_neg_res:
+                    q_cluster = hard_q
+                else:
+                    q_cluster = np.argmax(all_q, axis=1)  # (I, 1)
+
                 # print(q_cluster.shape)
                 # print(q_cluster[0])
                 # exit()
@@ -1161,8 +1166,9 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
             time_info_training = sum(iter_time)
             if _epoch == best_valid_epoch+1:
                 # best_var_names = all_var_names
-                best_grads = all_grads
-        all_gradients.append(all_grads)
+                user_embeddings = u_emb_val
+                item_embeddings = i_emb_val
+
 
 
 
@@ -1186,8 +1192,9 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
             os.makedirs(case_study_results)
         save_pickle(best_negs, case_study_results, "neg_samples")
         save_pickle(best_user_pos, case_study_results, "user_pos")
-        save_pickle(best_grads, case_study_results, "best_gradients")
-        save_pickle(all_gradients, case_study_results, "all_gradients")
+        np.save(case_study_results+ "user_embeddings.npy", user_embeddings)
+        np.save(case_study_results + "item_embeddings.npy", item_embeddings)
+        np.save(case_study_results + "ind_recall.npy", ind_recall)
 
 
 
@@ -1200,6 +1207,7 @@ def evaluate_model(sess, model, test_info, train_matrix, u_adj_list, v_adj_list,
     user_indexes = np.arange(n_user)
     topk = 100
     precision, recall, MAP, ndcg, ngcf_recall = [], [], [], [], []
+    ind_recall = []
     pred_list = None
     items = np.arange(0, n_item, 1, dtype=int)
 
@@ -1256,11 +1264,12 @@ def evaluate_model(sess, model, test_info, train_matrix, u_adj_list, v_adj_list,
 
     for k in [5, 10, 15, 20]:
         precision.append(precision_at_k(test_set, pred_list, k))
-        recall.append(recall_at_k(test_set, pred_list, k))
+        recall.append(recall_at_k(test_set, pred_list, k)[0])
+        ind_recall.append(recall_at_k(test_set, pred_list, k)[1])
         MAP.append(mapk(test_set, pred_list, k))
         ndcg.append(batch_ndcg_at_k(test_set, pred_list, k))
 
-    return precision, recall, MAP, ndcg, user_rep, item_rep
+    return precision, recall, MAP, ndcg, user_rep, item_rep, ind_recall
 
 
 if __name__ == '__main__':
@@ -1582,8 +1591,6 @@ if __name__ == '__main__':
         else:
             train_set = data_blocks[parser.block]['train']
         save_i_center = LOG_SAVE_PATH_PREFIX + parser.log_folder + f'/i_center_{parser.block}_{eval(parser.k_centroids)[1]}.npy'
-        print(save_i_center)
-        exit()
 
         train_set, test_set = split_data_randomly(train_set, test_ratio=0.2, seed=parser.seed)
         test_set, val_set = split_data_randomly(test_set, test_ratio=0.5, seed=parser.seed)

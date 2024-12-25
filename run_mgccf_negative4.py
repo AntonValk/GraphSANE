@@ -21,105 +21,6 @@ from metrics import *
 from models.mgccf_negative import GNN as MGCCF
 from sklearn.neighbors import kneighbors_graph
 import random
-import scipy as sp
-import scipy.sparse as sprs
-import scipy.spatial
-import scipy.sparse.linalg
-
-def pagerank(A, p=0.85,
-             personalize=None, reverse=False):
-    """ Calculates PageRank given a csr graph
-
-    Inputs:
-    -------
-
-    G: a csr graph.
-    p: damping factor
-    personlize: if not None, should be an array with the size of the nodes
-                containing probability distributions.
-                It will be normalized automatically
-    reverse: If true, returns the reversed-PageRank
-
-    outputs
-    -------
-
-    PageRank Scores for the nodes
-
-    """
-    # In Moler's algorithm, $A_{ij}$ represents the existences of an edge
-    # from node $j$ to $i$, while we have assumed the opposite!
-    if reverse:
-        A = A.T
-
-    n, _ = A.shape
-    r = sp.asarray(A.sum(axis=1)).reshape(-1)
-
-    k = r.nonzero()[0]
-    D_1 = sprs.csr_matrix((1 / r[k], (k, k)), shape=(n, n))
-
-    if personalize is None:
-        personalize = sp.ones(n)
-    personalize = personalize.reshape(n, 1)
-    s = (personalize / personalize.sum()) * n
-
-    I = sprs.eye(n)
-    x = sprs.linalg.spsolve((I - p * A.T @ D_1), s)
-
-    x = x / x.sum()
-    return x
-
-def pagerank_power(A, p=0.85, max_iter=500,
-                   tol=1e-06, personalize=None, reverse=False):
-    """ Calculates PageRank given a csr graph
-
-    Inputs:
-    -------
-    A: a csr graph.
-    p: damping factor
-    max_iter: maximum number of iterations
-    personlize: if not None, should be an array with the size of the nodes
-                containing probability distributions.
-                It will be normalized automatically.
-    reverse: If true, returns the reversed-PageRank
-
-    Returns:
-    --------
-    PageRank Scores for the nodes
-
-    """
-    # In Moler's algorithm, $G_{ij}$ represents the existences of an edge
-    # from node $j$ to $i$, while we have assumed the opposite!
-    if reverse:
-        A = A.T
-
-    n, _ = A.shape
-    r = sp.asarray(A.sum(axis=1)).reshape(-1)
-
-    k = r.nonzero()[0]
-    D_1 = sprs.csr_matrix((1 / r[k], (k, k)), shape=(n, n))
-
-    if personalize is None:
-        personalize = sp.ones(n)
-    personalize = personalize.reshape(n, 1)
-    s = (personalize / personalize.sum()) * n
-
-    z_T = (((1 - p) * (r != 0) + (r == 0)) / n)[sp.newaxis, :]
-    W = p * A.T @ D_1
-
-    x = s
-    oldx = sp.zeros((n, 1))
-
-    iteration = 0
-
-    while sp.linalg.norm(x - oldx) > tol:
-        oldx = x
-        x = W @ x + s @ (z_T @ x)
-        iteration += 1
-        if iteration >= max_iter:
-            break
-    x = x / sum(x)
-
-    return x.reshape(-1)
 
 
 def write_prediction_to_logger(logger, precision, recall, MAP, ndcg, epoch, name):
@@ -586,7 +487,7 @@ def get_model_prediction(parser, checkpoint, train_matrix, n_user, n_item, graph
 
 def train_model(parser, train_info, val_info, test_info, old_train_set, old_train_matrix,
                 n_epoch, n_old_user=0, n_old_item=0, node_deg_delta=None, logger=None, load_checkpoint='',
-                save_checkpoint='', graph_path=None, old_i_soft_center=None, save_i_center='', case_study_results=''):
+                save_checkpoint='', graph_path=None, old_i_soft_center=None, save_i_center=''):
     train_set, n_user, n_item, train_matrix = train_info
     val_set, n_user_val, n_item_val, val_matrix = val_info
     test_set, n_user_test, n_item_test, test_matrix = test_info
@@ -868,13 +769,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
         time_info_eval = 0
         time_info_sampling = 0
 
-        all_gradients = []
         while _epoch <= n_epoch:
-
-            all_negs = []
-            all_user_pos = []
-            all_grads = []
-            # all_var_names = []
 
             time_info.append(('start epoch ' + str(_epoch) + ' training', time.time()))
 
@@ -899,8 +794,6 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                                                                                         item_self_neighs_test,
                                                                                         n_batch_users=parser.batch_evaluate)
                     write_prediction_to_logger(logger, precision, t_recall, MAP, ndcg, _epoch, 'test set')
-                    best_negs = all_negs
-                    best_user_pos = all_user_pos
 
                     early_stop_flag = 0
                     best_valid_recall20 = v_recall[-1]
@@ -938,7 +831,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                                          user_self_neighs, item_self_neighs,
                                          n_batch_users=parser.batch_evaluate)
 
-            if parser.adaptive_oversampling and _epoch % 2 == 1:
+            if parser.adaptive_oversampling and _epoch == 2:
                 ranked_items = get_preds(sess, model, n_user, n_item, train_matrix,
                                          u_adj_list, v_adj_list,
                                          user_self_neighs, item_self_neighs,
@@ -950,10 +843,6 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                                          u_adj_list, v_adj_list,
                                          user_self_neighs, item_self_neighs,
                                          n_batch_users=parser.batch_evaluate)
-            if parser.page_rank:
-                node_adj_matrix = generate_sparse_adj_matrix_pagerank(train_set, n_user, n_item)
-                item_scores = pagerank_power(node_adj_matrix)[n_user:]
-                ranked_items = np.sort(item_scores)[2500:5000]
 
 
             # def get_preds(sess, model, n_user, n_item, train_matrix, u_adj_list, v_adj_list, user_self_neighs,
@@ -962,7 +851,6 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
 
             cache_size = 50
             adverserial_reservoir = np.zeros((n_user, cache_size))
-
 
             for iter in range(0, num_iter):
 
@@ -974,40 +862,40 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                 #     cache_size = 50  # N1
                 #     adverserial_reservoir = np.zeros((n_user, cache_size))
 
-                if parser.page_rank:
-                    neg_size = 2
-                    adverserial_reservoir = np.zeros((user_pos.shape[0], neg_size))
-                    for i, user in enumerate(user_pos[:, 0]):
-                        sampled_items = np.random.choice(ranked_items, size=neg_size, replace=False)
-                        adverserial_reservoir[i] = sampled_items
-                    rand_arr = np.random.randint(0, n_item, size=adverserial_reservoir.shape)
-                    adverserial_reservoir = np.where(adverserial_reservoir >= n_item, rand_arr, adverserial_reservoir)
-                    neg_samples[:, -neg_size:] = adverserial_reservoir
-
                 if parser.ns_cache:
                     cache_size = 50   # N1
                     new_samples = 30  # N2
                     if _epoch == 1:
+                        # cache_size = 50  # N1
                         adverserial_reservoir = np.zeros((n_user, cache_size))
                     if _epoch >= 2:
+                        # cache_size = 50  # N1
+                        # new_samples = 30  # N2
                         pivot = np.random.choice(n_item, size=new_samples, replace=False)
-                        fill = np.random.choice(n_item - 1)
-                        pivot = np.where(pivot >= n_item, fill, pivot)
+                        # adverserial_reservoir = np.zeros((user_pos.shape[0], cache_size))
                         for i, user in enumerate(user_pos[:, 0]):
+                            # sampled_item_scores = ranked_items[user, pivot]
+                            # for j in range(cache_size):
                             cached_items = adverserial_reservoir[user, :]
+                            # print(cached_items)
+                            # print(pivot)
+                            # print(cached_items.shape)
+                            # print(pivot.shape)
                             candidate_items = np.concatenate((cached_items, pivot))
+                            # print(user)
+                            # print(candidate_items)
+                            # print(ranked_items[user, list(candidate_items)])
+                            # print(ranked_items[user, list(candidate_items)].shape)
                             candidate_weights = []
+                            print(ranked_items.shape)
                             for cand in candidate_items:
-                                if int(cand) > n_item:
-                                    cand = fill
-                                candidate_weights.append(ranked_items[user, int(cand)])
-                            candidate_weights = softmax(candidate_weights)
+                                candidate_weights.append(ranked_items[user, cand])
+                            candidate_weights = softmax(ranked_items[user, candidate_items])
                             sampled_idx = np.random.choice(candidate_weights.shape[0], p=candidate_weights, size=cache_size, replace=False)
                             adverserial_reservoir[user] = candidate_weights[sampled_idx]
                         rand_arr = np.random.randint(0, n_item, size=adverserial_reservoir.shape)
                         adverserial_reservoir = np.where(adverserial_reservoir >= n_item, rand_arr, adverserial_reservoir)
-                        neg_samples[:, -2:] = adverserial_reservoir[user_pos[:, 0], :2]
-
+                        neg_samples[:, -10] = adverserial_reservoir[user_pos[:, 0], :10]
 
                 if _epoch >= 2 and parser.adaptive_oversampling:
                     pivot = np.random.geometric(p=0.002, size=10)
@@ -1019,7 +907,7 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                     adverserial_reservoir = np.where(adverserial_reservoir >= n_item, rand_arr, adverserial_reservoir)
                     neg_samples[:, -10:] = adverserial_reservoir
 
-                    # personalized adaptive constrastive negative sampling
+                # personalized adaptive constrastive negative sampling
 
                 if _epoch >= 2 and parser.neg_res:
                     pivot = np.random.randint(200, 300, size=2)
@@ -1054,8 +942,6 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                         pivot = np.random.randint(50, 60, size=2)
                         hard_pos.append(ranked_items[user][pivot])
 
-                all_negs.append(neg_samples)
-                all_user_pos.append(user_pos)
                 iter_start = time.time()
                 time_info_sampling += iter_start - time_info_sampling_start
                 feed_dict = {model.u_id: user_pos[:, 0],
@@ -1125,9 +1011,8 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                     feed_dict[model.old_u_cluster] = u_cluster
                     feed_dict[model.old_i_cluster] = i_cluster
 
-                _, grads, bpr_loss, contrastive_loss, softkl_loss, l2_reg, dist_loss, mse_user_reg, mse_item_reg, i_soft_center, interest_shift, all_q = sess.run(
+                _, bpr_loss, contrastive_loss, softkl_loss, l2_reg, dist_loss, mse_user_reg, mse_item_reg, i_soft_center, interest_shift, all_q = sess.run(
                     [model.ptmzr,
-                     model.gradients,
                      model.bpr_loss,
                      model.contrastive_loss,
                      model.softkl_loss,
@@ -1139,10 +1024,8 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
                      model.interest_shift,
                      model.all_q],
                     feed_dict=feed_dict)
-                # all_var_names.append(variables)
-                all_grads.append(np.sum(grads))
-
                 # print('pred_list', pred_list.shape)
+
                 # print(interest_shift.shape) # (u, K)
                 # print(np.sum(interest_shift, axis=1))
                 q_cluster = np.argmax(all_q, axis=1)  # (I, 1)
@@ -1159,12 +1042,6 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
 
             time_info.append(('finish epoch ' + str(_epoch) + ' training', time.time()))
             time_info_training = sum(iter_time)
-            if _epoch == best_valid_epoch+1:
-                # best_var_names = all_var_names
-                best_grads = all_grads
-        all_gradients.append(all_grads)
-
-
 
         np.save(save_i_center, i_soft_center)
         time_info.append(('finish final epoch training', time.time()))
@@ -1181,14 +1058,6 @@ def train_model(parser, train_info, val_info, test_info, old_train_set, old_trai
         print("training time: " + str(sum(iter_time)) + '\n')
         print('best_valid_epoch, best_valid_recall20, best_test_recall20')
         print(str([best_valid_epoch, best_valid_recall20, best_test_recall20]))
-    if case_study_results:
-        if not os.path.exists(case_study_results):
-            os.makedirs(case_study_results)
-        save_pickle(best_negs, case_study_results, "neg_samples")
-        save_pickle(best_user_pos, case_study_results, "user_pos")
-        save_pickle(best_grads, case_study_results, "best_gradients")
-        save_pickle(all_gradients, case_study_results, "all_gradients")
-
 
 
 def evaluate_model(sess, model, test_info, train_matrix, u_adj_list, v_adj_list, user_self_neighs, item_self_neighs,
@@ -1326,7 +1195,6 @@ if __name__ == '__main__':
             else:
                 logger = None
 
-
             if parser.n_inc > 1:
                 assert parser.save_cp == ''  # can save the updated model if there is only one inc block
                 save_ckpt = log_save_path + '/model.ckpt'
@@ -1336,11 +1204,6 @@ if __name__ == '__main__':
             next_blcok = cur_block + 1
             prev_block = cur_block - 1
             save_i_prefix = LOG_SAVE_PATH_PREFIX + parser.log_folder + '/' + parser.log_files
-            if parser.grad_log:
-                case_study_results = parser.log_files + '/' + parser.dataset + "/" + parser.sampler_mode + "/" + f"case_study_{cur_block}/"
-            else:
-                case_study_results = ''
-
             if not os.path.exists(save_i_prefix):
                 os.makedirs(save_i_prefix)
             save_i_center = LOG_SAVE_PATH_PREFIX + parser.log_folder + '/' + parser.log_files + f'/i_center_{cur_block}_{eval(parser.k_centroids)[1]}.npy'
@@ -1542,8 +1405,7 @@ if __name__ == '__main__':
                         save_checkpoint=save_ckpt,
                         graph_path=graph_path,
                         old_i_soft_center=old_i_soft_center,
-                        save_i_center=save_i_center,
-                        case_study_results=case_study_results)
+                        save_i_center=save_i_center)
 
             load_ckpt = save_ckpt
 
@@ -1569,10 +1431,7 @@ if __name__ == '__main__':
                 logger.write(arg + '=' + str(getattr(parser, arg)) + '\n')
         else:
             logger = None
-        if parser.grad_log:
-            case_study_results = parser.log_files + '/' + parser.dataset + "/" + parser.sampler_mode + "/case_study_0/"
-        else:
-            case_study_results = ''
+
         # for the first block, we use the same block for train and test
         n_user, n_item = data_blocks[parser.block]['n_user_train'], data_blocks[parser.block]['n_item_train']
         test_user, test_item = n_user, n_item
@@ -1582,8 +1441,6 @@ if __name__ == '__main__':
         else:
             train_set = data_blocks[parser.block]['train']
         save_i_center = LOG_SAVE_PATH_PREFIX + parser.log_folder + f'/i_center_{parser.block}_{eval(parser.k_centroids)[1]}.npy'
-        print(save_i_center)
-        exit()
 
         train_set, test_set = split_data_randomly(train_set, test_ratio=0.2, seed=parser.seed)
         test_set, val_set = split_data_randomly(test_set, test_ratio=0.5, seed=parser.seed)
@@ -1606,8 +1463,7 @@ if __name__ == '__main__':
                     save_checkpoint=save_ckpt,
                     graph_path=graph_path,
                     old_i_soft_center=None,
-                    save_i_center=save_i_center,
-                    case_study_results=case_study_results)
+                    save_i_center=save_i_center)
 
         time_info.append(('finish calc mse coef', time.time()))
 

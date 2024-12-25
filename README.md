@@ -106,6 +106,190 @@ When the data is processed by the *Data* class, it can be accessed through the d
        `-new_node_init`: this controls the way to initialize new nodes. For each incremental block, some new nodes will be introduced, the default value `` means to initialize these new node randomly; in this example, `2hop_mean` means to initialize the embedding of these new nodes by using the mean embedding of their 2-hop neighbours.  
       
 
+# GraphSANE
+ALL GRAPH_SAIL
+taskset -c "0-11" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_graphsail_gowalla20 -load_cp gowalla_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4 --neg_res
 
+
+
+## LWCKD
+
+taskset -c "0-11" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_lwc_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "12-23" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_lwc_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "0-11" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files lwc_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5
+
+-layer_wise 1 -contrastive_mode 'Multi' -lambda_contrastive 5e2
+
+taskset -c "0-11" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files ft_gowalla20 -load_cp gowalla_b0_100e -min_epoch 5 -patience 5
+
+## ALL SGCT
+
+### SANE
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_sgct_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 --neg_res
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d taobao1 -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files neg_sgct_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 --neg_res
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files neg_sgct_taobao2_buy -load_cp taobao2_buy_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 --neg_res
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files neg_sgct_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100 --neg_res
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d netflix -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files neg_sgct_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100 --neg_res
+
+### NO-SANE
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d taobao1 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files sgct_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100 --neg_res
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files sgct_taobao2_buy -load_cp taobao2_buy_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100 
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files sgct_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d netflix -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files sgct_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,100
+
+
+
+
+## ALL LWC-KD
+
+### NO SANE
+```
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files lwc_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,100
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d taobao1 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files lwc_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,100
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files lwc_taobao2_buy -load_cp taobao2_buy_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,100
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files lwc_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,100
+
+taskset -c "13-24" python3 -u run_mgccf_negative3.py -d netflix -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files lwc_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 2 -lr 5e-4 -con_ratios 1.5,1,1.5,1,1,1,1 -layer_wise 0 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,100
+```
+
+
+## SANE
+```
+taskset -c "0-4" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_graphsail_gowalla20 -load_cp gowalla_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4 --neg_res
+
+taskset -c "5-9" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_sgct_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01  -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "10-14" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 2 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files neg_lwc_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01  -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "15-19" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 3 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files graphsail_gowalla20 -load_cp gowalla_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4
+
+taskset -c "20-24" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 4 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files sgct_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 
+
+taskset -c "25-29" python3 -u run_mgccf_negative3.py -d Gowalla-20 -de 5 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testgowalla20 -log gowalla20 -log_files lwc_gowalla20 -load_cp gowalla_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 
+```
+
+# YELP
+```
+taskset -c "0-4" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files neg_graphsail_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4 --neg_res
+
+taskset -c "5-9" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files neg_sgct_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "10-14" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 2 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files neg_lwc_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+
+taskset -c "15-19" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 3 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files graphsail_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4
+
+taskset -c "20-24" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 4 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files sgct_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 
+
+taskset -c "25-29" python3 -u run_mgccf_negative3.py -d yelp_5yrs_60 -de 5 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testyelp_5yrs_60 -log yelp_5yrs_60 -log_files lwc_yelp_5yrs_60 -load_cp yelp_5yrs_60_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 
+```
+
+
+
+# TAOBAO1
+```
+taskset -c "0-4" python3 -u run_mgccf_negative3.py -d taobao1 -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files neg_graphsail_taobao1 -load_cp taobao1_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4 --neg_res
+
+taskset -c "5-9" python3 -u run_mgccf_negative3.py -d taobao1 -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files neg_sgct_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "10-14" python3 -u run_mgccf_negative3.py -d taobao1 -de 2 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files neg_lwc_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+
+taskset -c "15-19" python3 -u run_mgccf_negative3.py -d taobao1 -de 3 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files graphsail_taobao1 -load_cp taobao1_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4
+
+taskset -c "20-24" python3 -u run_mgccf_negative3.py -d taobao1 -de 4 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files sgct_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 
+
+taskset -c "25-29" python3 -u run_mgccf_negative3.py -d taobao1 -de 5 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao1 -log taobao1 -log_files lwc_taobao1 -load_cp taobao1_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 
+```
+
+# TAOBAO2
+```
+taskset -c "0-4" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files neg_graphsail_taobao2_buy -load_cp taobao2_buy_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4 --neg_res
+
+taskset -c "5-9" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files neg_sgct_taobao2_buy -load_cp taobao2_buy_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res
+
+taskset -c "10-14" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 0,1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files neg_lwc_taobao2_buy -load_cp taobao2_buy_b0_100e_mini -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res --embedded_dimension '[10, 10, 10]'
+
+
+taskset -c "15-19" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 3 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files graphsail_taobao2_buy -load_cp taobao2_buy_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4
+
+taskset -c "20-24" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 4 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files sgct_taobao2_buy -load_cp taobao2_buy_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 
+
+taskset -c "25-29" python3 -u run_mgccf_negative3.py -d taobao2_buy -de 2,3 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testtaobao2_buy -log taobao2_buy -log_files lwc_taobao2_buy -load_cp taobao2_buy_b0_100e_mini -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --embedded_dimension '[10, 10, 10]'
+```
+
+# NETFLIX
+```
+taskset -c "0-4" python3 -u run_mgccf_negative3.py -d netflix -de 0 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files neg_graphsail_netflix -load_cp netflix_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4 --neg_res
+
+taskset -c "5-9" python3 -u run_mgccf_negative3.py -d netflix -de 1 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files neg_sgct_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res --embedded_dimension '[10, 10, 10]'
+
+taskset -c "10-14" python3 -u run_mgccf_negative3.py -d netflix -de 2 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files neg_lwc_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --neg_res --embedded_dimension '[10, 10, 10]'
+
+
+taskset -c "15-19" python3 -u run_mgccf_negative3.py -d netflix -de 3 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files graphsail_netflix -load_cp netflix_b0_100e -mse 100 -local_distill 1e4 -global_distill 1e4 -global_k 10,10 -global_tau 1 -patience 2 -lr 5e-4
+
+taskset -c "20-24" python3 -u run_mgccf_negative3.py -d netflix -de 4 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files sgct_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Single' -lambda_contrastive 100,10,1 -min_epoch 5 --embedded_dimension '[10, 10, 10]'
+
+taskset -c "25-29" python3 -u run_mgccf_negative3.py -d netflix -de 5 -e 25 -block 1 -n_inc 3 -train_mode sep -log_folder testnetflix -log netflix -log_files lwc_netflix -load_cp netflix_b0_100e -lambda_soft 0.01 -global_k 10,10 -global_tau 0.5 -patience 5 -lr 5e-4 -con_ratios 1.5,1,1.5,2,1,2,1 -layer_wise 1 -ui_con_positive 15 -contrastive_mode 'Multi' -lambda_contrastive 100,10,1 -min_epoch 5 --embedded_dimension '[10, 10, 10]'
+```
+
+
+# Datasets
+
+## Standard pre-processing steps
+  - Remove all nodes has degree less than 10
+  - Remove all duplicated u-i pairs (some u-i pairs appear more than once with different timestamp, we keep the last one)
+  - pre-processing notebook: data_utils/preprocess_dataset.ipynb. Untested code. Please read and make sure you understand before use.
+
+## TB2014 (User Behavior Data on Taobao App)
+
+Source of [raw data](https://tianchi.aliyun.com/dataset/dataDetail?dataId=46).
+
+## TB2015 (Taobao/Tmall IJCAI16 Contest)
+
+        Only keeps buy edges.
+
+Source of [raw data](https://tianchi.aliyun.com/dataset/dataDetail?dataId=53).
+
+## Alimama
+
+        Do not keep page view(pv) edges.
+
+Source of [raw data](https://tianchi.aliyun.com/dataset/dataDetail?dataId=649). 
+
+## Gowalla
+
+Source of [raw data](https://snap.stanford.edu/data/loc-Gowalla.html). 
+
+## Yelp_5yrs
+
+        The time range of this dataset is too long. I chopped the last five years of data for the pre-processing.
+
+Source of [raw data](https://www.yelp.com/dataset). 
+
+## LastFM
+
+        This dataset is too small. In the GraphSAIL paper, I didn't remove the duplicates.
+
+Source of [raw data](https://grouplens.org/datasets/hetrec-2011/). 
+
+To pre-process the datasets use the pre-processincg notebook located in `data_utils/preprocess_dataset.ipynb`.
 
 
